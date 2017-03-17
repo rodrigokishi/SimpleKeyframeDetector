@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileWriter;
 
 import org.openimaj.feature.DoubleFVComparison;
+import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.pixel.statistics.HistogramModel;
 import org.openimaj.math.statistics.distribution.MultidimensionalHistogram;
 import org.openimaj.video.xuggle.XuggleVideo;
@@ -11,6 +12,7 @@ import org.openimaj.video.xuggle.XuggleVideo;
 import TVSSUnits.Shot;
 import TVSSUnits.ShotList;
 import TVSSUtils.ShotReader;
+import TVSSUtils.VideoPinpointer;
 
 public class SimpleKeyframeDetector 
 {
@@ -21,20 +23,21 @@ public class SimpleKeyframeDetector
 		ShotList shotList = ShotReader.readFromCSV(source, args[1]);	
 		System.out.println("Processing shots.");
 		FileWriter keyframeWriter = new FileWriter(args[2]);
-		int shotIndex = 0;
+		int shotIndex = 0;			
+		
 		for(Shot shot: shotList.getList())	
 		{
 			long firstFrame = shot.getStartBoundary().getTimecode().getFrameNumber();
 			long lastFrame = shot.getEndBoundary().getTimecode().getFrameNumber();
-			long frameQty = (lastFrame - firstFrame + 1);			
-
+			long frameQty = (lastFrame - firstFrame + 1);						
 			//Calculate a color histogram of each frame in the shot
 			MultidimensionalHistogram histogram[] = new MultidimensionalHistogram[(int) frameQty];			
 			HistogramModel histogramModel = new HistogramModel(4,4,4);
 						
 			for(int i = 0; i < frameQty; i++)
 			{
-				source.setCurrentFrameIndex(firstFrame + i); 
+				VideoPinpointer.seek(source, firstFrame); //Always use this before setCurrentFrameIndex
+				source.setCurrentFrameIndex(firstFrame + i); 					
 				histogramModel.estimateModel(source.getCurrentFrame());
 				histogram[i] = histogramModel.histogram.clone();				
 			}
@@ -63,12 +66,23 @@ public class SimpleKeyframeDetector
 				}
 			}
 			keyframeWriter.write(shotIndex + "\t" + (firstFrame + minDistanceIndex) + "\n");
+			
+			/*Create image file*/
+			String folder = args[3];
+			int kfNum = 0;
+			String keyframeName = "s" + String.format("%04d", shotIndex) + "kf" + String.format("%04d", kfNum) + ".jpg";			
+			VideoPinpointer.seek(source, firstFrame + minDistanceIndex);
+			source.setCurrentFrameIndex(firstFrame + minDistanceIndex);
+			ImageUtilities.write(source.getCurrentFrame().getImage(), new File(folder + keyframeName));
+			
+			
 			System.out.println("Shot " + shotIndex + ": " + shot.getStartBoundary().getTimecode().getFrameNumber() + " - " +  shot.getEndBoundary().getTimecode().getFrameNumber() +
 					 " | Keyframe @ " + (firstFrame + minDistanceIndex));
 			shotIndex++;
 		}
 		keyframeWriter.close();
 		source.close();
+		System.exit(0); //Exit Success
     }
 }
  
