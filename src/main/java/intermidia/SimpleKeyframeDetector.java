@@ -16,6 +16,7 @@ import TVSSUtils.VideoPinpointer;
 
 public class SimpleKeyframeDetector 
 {
+	/*Usage: <in: video> <in: shot annotation> <out: keyframe annotation> <out: keyframe images>*/
     public static void main( String[] args ) throws Exception
     {
 		XuggleVideo source = new XuggleVideo(new File(args[0]));
@@ -72,7 +73,7 @@ public class SimpleKeyframeDetector
 			int kfNum = 0;
 			String keyframeName = "s" + String.format("%04d", shotIndex) + "kf" + String.format("%04d", kfNum) + ".jpg";			
 			VideoPinpointer.seek(source, firstFrame + minDistanceIndex);
-			source.setCurrentFrameIndex(firstFrame + minDistanceIndex);
+			//source.setCurrentFrameIndex(firstFrame + minDistanceIndex);
 			ImageUtilities.write(source.getCurrentFrame().getImage(), new File(folder + keyframeName));
 			
 			
