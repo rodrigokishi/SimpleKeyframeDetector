@@ -24,7 +24,7 @@ public class SimpleKeyframeDetector
 		ShotList shotList = ShotReader.readFromCSV(source, args[1]);	
 		System.out.println("Processing shots.");
 		FileWriter keyframeWriter = new FileWriter(args[2]);
-		int shotIndex = 0;			
+		int shotIndex = 0;					
 		
 		for(Shot shot: shotList.getList())	
 		{
@@ -42,8 +42,7 @@ public class SimpleKeyframeDetector
 				histogramModel.estimateModel(source.getCurrentFrame());
 				histogram[i] = histogramModel.histogram.clone();				
 			}
-			
-			
+						
 			//Calculate mean distance from a frame to all other in same shot
 			double meanDistance[] = new double[(int) frameQty];
 			for(int i = 0; i < frameQty; i++)
