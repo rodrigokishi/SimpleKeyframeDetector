@@ -12,7 +12,6 @@ import org.openimaj.video.xuggle.XuggleVideo;
 import TVSSUnits.Shot;
 import TVSSUnits.ShotList;
 import TVSSUtils.ShotReader;
-import TVSSUtils.VideoPinpointer;
 
 public class SimpleKeyframeDetector 
 {
@@ -20,29 +19,36 @@ public class SimpleKeyframeDetector
     public static void main( String[] args ) throws Exception
     {
 		XuggleVideo source = new XuggleVideo(new File(args[0]));
-		System.out.println("Reading shots.");
-		ShotList shotList = ShotReader.readFromCSV(source, args[1]);	
-		System.out.println("Processing shots.");
-		FileWriter keyframeWriter = new FileWriter(args[2]);
-		int shotIndex = 0;					
+		//For some reason first two getNextFrame() returns 0.
+		source.getNextFrame();
+		ShotList shotList = ShotReader.readFromCSV(args[1]);					
 		
+		System.out.println("Reading video.");		
+		FileWriter keyframeWriter = new FileWriter(args[2]);
+		int shotIndex = 0;
 		for(Shot shot: shotList.getList())	
-		{
-			long firstFrame = shot.getStartBoundary().getTimecode().getFrameNumber();
-			long lastFrame = shot.getEndBoundary().getTimecode().getFrameNumber();
+		{	
+			int firstFrame = (int)shot.getStartBoundary();
+			int lastFrame = (int)shot.getEndBoundary();
 			long frameQty = (lastFrame - firstFrame + 1);						
-			//Calculate a color histogram of each frame in the shot
-			MultidimensionalHistogram histogram[] = new MultidimensionalHistogram[(int) frameQty];			
-			HistogramModel histogramModel = new HistogramModel(4,4,4);
-						
-			for(int i = 0; i < frameQty; i++)
+			//Advance video pointer to the shot beginning
+			while(source.getCurrentFrameIndex() < firstFrame && source.hasNextFrame())
 			{
-				VideoPinpointer.seek(source, firstFrame); //Always use this before setCurrentFrameIndex
-				source.setCurrentFrameIndex(firstFrame + i); 					
-				histogramModel.estimateModel(source.getCurrentFrame());
-				histogram[i] = histogramModel.histogram.clone();				
+				source.getNextFrame();
 			}
-						
+			//Calculate a color histogram of each frame in the shot
+			int histIndex = 0;
+			MultidimensionalHistogram histogram[] = new MultidimensionalHistogram[(int) frameQty];			
+			HistogramModel histogramModel = new HistogramModel(4,4,4);			
+			while(source.getCurrentFrameIndex() <= lastFrame && source.hasNextFrame())
+			{
+				histogramModel.estimateModel(source.getCurrentFrame());
+				histogram[histIndex++] = histogramModel.histogram.clone();
+				source.getNextFrame();
+			}
+			//Sometimes there are less frames than the expected, this line updates it
+			frameQty = histIndex;
+			
 			//Calculate mean distance from a frame to all other in same shot
 			double meanDistance[] = new double[(int) frameQty];
 			for(int i = 0; i < frameQty; i++)
@@ -66,22 +72,17 @@ public class SimpleKeyframeDetector
 				}
 			}
 			keyframeWriter.write(shotIndex + "\t" + (firstFrame + minDistanceIndex) + "\n");
-			
 			/*Create image file*/
 			String folder = args[3];
 			int kfNum = 0;
 			String keyframeName = "s" + String.format("%04d", shotIndex) + "kf" + String.format("%04d", kfNum) + ".jpg";			
-			VideoPinpointer.seek(source, firstFrame + minDistanceIndex);
-			//source.setCurrentFrameIndex(firstFrame + minDistanceIndex);
-			ImageUtilities.write(source.getCurrentFrame().getImage(), new File(folder + keyframeName));
-			
-			
-			System.out.println("Shot " + shotIndex + ": " + shot.getStartBoundary().getTimecode().getFrameNumber() + " - " +  shot.getEndBoundary().getTimecode().getFrameNumber() +
-					 " | Keyframe @ " + (firstFrame + minDistanceIndex));
+			ImageUtilities.write(source.getCurrentFrame(), new File(folder + keyframeName));
+			System.out.println("Shot " + shotIndex + ": " + shot.getStartBoundary() + " - " +  shot.getEndBoundary() +
+					" | Keyframe @ " + (firstFrame + minDistanceIndex));
 			shotIndex++;
-		}
-		keyframeWriter.close();
+		}		
 		source.close();
+		keyframeWriter.close();
 		System.exit(0); //Exit Success
     }
 }
