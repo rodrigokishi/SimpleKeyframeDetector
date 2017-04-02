@@ -23,7 +23,7 @@ public class SimpleKeyframeDetector
 		source.getNextFrame();
 		ShotList shotList = ShotReader.readFromCSV(args[1]);					
 		
-		System.out.println("Reading video.");		
+		//System.out.println("Reading video.");		
 		FileWriter keyframeWriter = new FileWriter(args[2]);
 		int shotIndex = 0;
 		for(Shot shot: shotList.getList())	
@@ -39,8 +39,12 @@ public class SimpleKeyframeDetector
 			//Calculate a color histogram of each frame in the shot
 			int histIndex = 0;
 			MultidimensionalHistogram histogram[] = new MultidimensionalHistogram[(int) frameQty];			
-			HistogramModel histogramModel = new HistogramModel(4,4,4);			
-			while(source.getCurrentFrameIndex() <= lastFrame && source.hasNextFrame())
+			HistogramModel histogramModel = new HistogramModel(4,4,4);		
+			
+			while(source.getCurrentFrameIndex() <= lastFrame && 
+					source.hasNextFrame() &&
+					histIndex < frameQty
+				 )
 			{
 				histogramModel.estimateModel(source.getCurrentFrame());
 				histogram[histIndex++] = histogramModel.histogram.clone();
@@ -77,8 +81,8 @@ public class SimpleKeyframeDetector
 			int kfNum = 0;
 			String keyframeName = "s" + String.format("%04d", shotIndex) + "kf" + String.format("%04d", kfNum) + ".jpg";			
 			ImageUtilities.write(source.getCurrentFrame(), new File(folder + keyframeName));
-			System.out.println("Shot " + shotIndex + ": " + shot.getStartBoundary() + " - " +  shot.getEndBoundary() +
-					" | Keyframe @ " + (firstFrame + minDistanceIndex));
+			//System.out.println("Shot " + shotIndex + ": " + shot.getStartBoundary() + " - " +  shot.getEndBoundary() +
+			//		" | Keyframe @ " + (firstFrame + minDistanceIndex));
 			shotIndex++;
 		}		
 		source.close();
