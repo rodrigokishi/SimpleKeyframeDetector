@@ -12,6 +12,7 @@ import org.openimaj.video.xuggle.XuggleVideo;
 import TVSSUnits.Shot;
 import TVSSUnits.ShotList;
 import TVSSUtils.ShotReader;
+import TVSSUtils.VideoPinpointer;
 
 public class SimpleKeyframeDetector 
 {
@@ -19,6 +20,7 @@ public class SimpleKeyframeDetector
     public static void main( String[] args ) throws Exception
     {
 		XuggleVideo source = new XuggleVideo(new File(args[0]));
+		XuggleVideo auxSource = new XuggleVideo(new File(args[0]));
 		//For some reason first two getNextFrame() returns 0.
 		source.getNextFrame();
 		ShotList shotList = ShotReader.readFromCSV(args[1]);					
@@ -79,8 +81,9 @@ public class SimpleKeyframeDetector
 			/*Create image file*/
 			String folder = args[3];
 			int kfNum = 0;
-			String keyframeName = "s" + String.format("%04d", shotIndex) + "kf" + String.format("%04d", kfNum) + ".jpg";			
-			ImageUtilities.write(source.getCurrentFrame(), new File(folder + keyframeName));
+			String keyframeName = "s" + String.format("%04d", shotIndex) + "kf" + String.format("%04d", kfNum) + ".jpg";
+			VideoPinpointer.seek(auxSource, firstFrame + minDistanceIndex);
+			ImageUtilities.write(auxSource.getCurrentFrame(), new File(folder + keyframeName));
 			//System.out.println("Shot " + shotIndex + ": " + shot.getStartBoundary() + " - " +  shot.getEndBoundary() +
 			//		" | Keyframe @ " + (firstFrame + minDistanceIndex));
 			shotIndex++;
