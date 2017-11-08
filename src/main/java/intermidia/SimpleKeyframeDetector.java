@@ -62,7 +62,7 @@ public class SimpleKeyframeDetector
 				meanDistance[i] = 0;
 				for(int j = 0; j < frameQty; j++)
 				{
-					meanDistance[i] += histogram[i].compare(histogram[j], DoubleFVComparison.EUCLIDEAN);
+					meanDistance[i] += histogram[i].compare(histogram[j], DoubleFVComparison.INTERSECTION);
 				}
 				meanDistance[i] /= frameQty;
 			}
